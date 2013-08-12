@@ -66,6 +66,7 @@ class Node < Formula
 
     unless build.include? 'without-npm'
       (lib/"node_modules/npm/npmrc").write("prefix = #{npm_prefix}\n")
+      bash_completion.install "deps/npm/lib/utils/completion.sh" => 'npm'
     end
   end
 
@@ -98,7 +99,7 @@ index 806f92b..5256856 100644
 --- a/tools/gyp/pylib/gyp/xcode_emulation.py
 +++ b/tools/gyp/pylib/gyp/xcode_emulation.py
 @@ -224,8 +224,7 @@ class XcodeSettings(object):
- 
+
    def _GetSdkVersionInfoItem(self, sdk, infoitem):
      job = subprocess.Popen(['xcodebuild', '-version', '-sdk', sdk, infoitem],
 -                           stdout=subprocess.PIPE,
@@ -108,7 +109,7 @@ index 806f92b..5256856 100644
      if job.returncode != 0:
        sys.stderr.write(out + '\n')
 @@ -234,9 +233,17 @@ class XcodeSettings(object):
- 
+
    def _SdkPath(self):
      sdk_root = self.GetPerTargetSetting('SDKROOT', default='macosx')
 +    if sdk_root.startswith('/'):
@@ -125,12 +126,12 @@ index 806f92b..5256856 100644
 +        # is no valid SDK root
 +        XcodeSettings._sdk_path_cache[sdk_root] = None
      return XcodeSettings._sdk_path_cache[sdk_root]
- 
+
    def _AppendPlatformVersionMinFlags(self, lst):
 @@ -339,10 +346,11 @@ class XcodeSettings(object):
- 
+
      cflags += self._Settings().get('WARNING_CFLAGS', [])
- 
+
 -    config = self.spec['configurations'][self.configname]
 -    framework_dirs = config.get('mac_framework_dirs', [])
 -    for directory in framework_dirs:
@@ -140,13 +141,13 @@ index 806f92b..5256856 100644
 +      framework_dirs = config.get('mac_framework_dirs', [])
 +      for directory in framework_dirs:
 +        cflags.append('-F' + directory.replace('$(SDKROOT)', sdk_root))
- 
+
      self.configname = None
      return cflags
 @@ -572,10 +580,11 @@ class XcodeSettings(object):
      for rpath in self._Settings().get('LD_RUNPATH_SEARCH_PATHS', []):
        ldflags.append('-Wl,-rpath,' + rpath)
- 
+
 -    config = self.spec['configurations'][self.configname]
 -    framework_dirs = config.get('mac_framework_dirs', [])
 -    for directory in framework_dirs:
@@ -156,7 +157,7 @@ index 806f92b..5256856 100644
 +      framework_dirs = config.get('mac_framework_dirs', [])
 +      for directory in framework_dirs:
 +        ldflags.append('-F' + directory.replace('$(SDKROOT)', self._SdkPath()))
- 
+
      self.configname = None
      return ldflags
 @@ -700,7 +709,10 @@ class XcodeSettings(object):
@@ -168,6 +169,6 @@ index 806f92b..5256856 100644
 +      return l.replace('$(SDKROOT)', self._SdkPath())
 +    else:
 +      return l
- 
+
    def AdjustLibraries(self, libraries):
      """Transforms entries like 'Cocoa.framework' in libraries into entries like
